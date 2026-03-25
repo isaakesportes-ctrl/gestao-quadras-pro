@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReservaQuadras Pro | Gestão de Elite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <!-- Firebase SDK (Cloud Sync) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --bg-body: #0b0f1a;
+            --bg-mesh-1: #1e1b4b;
+            --bg-mesh-2: #312e81;
+            --bg-mesh-3: #020617;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --modal-bg: #0f172a;
+            --modal-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --nav-bg: rgba(0, 0, 0, 0.2);
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f8fafc;
+            --bg-mesh-1: #e0e7ff;
+            --bg-mesh-2: #ddd6fe;
+            --bg-mesh-3: #f1f5f9;
+            --card-bg: #ffffff;
+            --card-border: #cbd5e1;
+            --modal-bg: #ffffff;
+            --modal-border: #e2e8f0;
+            --text-main: #000000;
+            --text-muted: #475569;
+            --nav-bg: rgba(255, 255, 255, 0.8);
+        }
+
+        [data-theme="light"] .text-white { color: #000000 !important; }
+        [data-theme="light"] .text-gray-500 { color: #475569 !important; }
+        [data-theme="light"] .text-gray-400 { color: #334155 !important; }
+        [data-theme="light"] .text-gray-300 { color: #1e293b !important; }
+        [data-theme="light"] .text-indigo-400 { color: #4f46e5 !important; }
+        [data-theme="light"] .text-indigo-300 { color: #312e81 !important; }
+        [data-theme="light"] .bg-white\/5 { background: rgba(0, 0, 0, 0.08) !important; }
+        [data-theme="light"] .border-white\/5 { border-color: rgba(0, 0, 0, 0.1) !important; }
+        [data-theme="light"] .border-white\/10 { border-color: rgba(0, 0, 0, 0.15) !important; }
+        [data-theme="light"] .input-glass { background: #f1f5f9; border-color: #cbd5e1; color: #000000; }
+        [data-theme="light"] .bg-black\/20 { background: rgba(255, 255, 255, 0.8) !important; }
+        [data-theme="light"] .bg-indigo-500\/20 { background: rgba(79, 70, 229, 0.1) !important; }
+        [data-theme="light"] .glass-card { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1); }
+        
+        /* Ajuste de contraste para o Verde (Livre) no Tema Claro */
+        [data-theme="light"] .text-emerald-300 { color: #059669 !important; font-weight: 800 !important; }
+        [data-theme="light"] .bg-emerald-500\/30 { background: #d1fae5 !important; border: 1px solid #10b981 !important; }
+        [data-theme="light"] .bg-emerald-400 { background: #10b981 !important; }
+        [data-theme="light"] .bg-emerald-500\/20 { background: #ecfdf5 !important; }
+
+        [data-theme="light"] #booking-modal > div:last-child,
+        [data-theme="light"] #admin-modal > div:last-child,
+        [data-theme="light"] #edit-modal > div:last-child,
+        [data-theme="light"] #member-modal > div:last-child { background: var(--modal-bg); border-color: var(--modal-border); color: var(--text-main); }
+        
+        /* Forçar cores nas opções do select para evitar herança branca em fundos brancos */
+        select option {
+            background: var(--modal-bg) !important;
+            color: var(--text-main) !important;
+        }
+
+        .modal-theme-fix {
+            background: var(--modal-bg) !important;
+            border-color: var(--modal-border) !important;
+            color: var(--text-main) !important;
+        }
+
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            cursor: default;
+        }
+
+        body {
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            letter-spacing: -0.01em;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .mesh-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 0% 0%, var(--bg-mesh-1) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, var(--bg-mesh-2) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, var(--bg-mesh-3) 0%, transparent 100%);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px var(--primary-glow);
+            transform: translateY(-5px);
+        }
+
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link.active::after {
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .input-glass {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-main);
+            transition: all 0.3s;
+        }
+
+        .input-glass::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .input-glass:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.12);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+
+        .vertical-tv-view {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            padding: 2rem;
+        }
+
+        /* Responsividade para diferentes formatos de tela */
+        @media (max-width: 768px) {
+            #public-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .text-7xl { font-size: 3.5rem; }
+            .text-6xl { font-size: 3rem; }
+            .text-5xl { font-size: 2.5rem; }
+            main { padding: 1rem !important; }
+        }
+
+        /* Otimização para tela Vertical de 50" (Portraits/Totems) */
+        @media (orientation: portrait) {
+            #public-grid {
+                grid-template-columns: repeat(2, 1fr) !important; /* Duas colunas lado a lado */
+                gap: 1.5rem;
+            }
+            .court-card-public {
+                min-height: auto;
+                aspect-ratio: 1/1.2; /* Um pouco mais alto que largo */
+            }
+            .text-7xl { font-size: 5rem; }
+            .text-2xl { font-size: 1.5rem; }
+        }
+
+        /* Caso tenha muitas quadras, forçar grid compacta para caber tudo na TV */
+        #public-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        /* Otimização para telas horizontais (TVs comuns/Monitores) */
+        @media (orientation: landscape) and (min-width: 1280px) {
+            #public-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+        }
+
+        .rain-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://www.transparenttextures.com/patterns/rain.png');
+            animation: rain 0.5s linear infinite;
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        @keyframes rain {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 20% 100%; }
+        }
+
+        .blurred-glass::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: inherit;
+            filter: blur(5px);
+            z-index: -1;
+        }
+
+        /* Bloqueio Styles */
+        .status-blocked {
+            background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%);
+        }
+        .status-lesson {
+            background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+        }
+        .status-tournament {
+            background: linear-gradient(135deg, #10b981 0%, #065f46 100%);
+        }
+        .status-rain {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 9999;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="mesh-bg"></div>
+    <div id="toast-container"></div>
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-[100] backdrop-blur-md bg-black/20 border-b border-white/5 px-4 md:px-8 py-4 md:py-5">
+        <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
+            <div class="flex items-center gap-4 group cursor-pointer" onclick="switchView('home')">
+                <div class="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center rotate-3 group-hover:rotate-12 transition-transform duration-500 shadow-xl shadow-indigo-500/20">
+                    <i class="fas fa-table-tennis-paddle-ball text-xl md:text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tighter" id="brand-name">Reserva<span class="text-indigo-400">Quadras</span></h1>
+                    <p class="text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none">Management Pro</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 md:gap-8 overflow-x-auto max-w-full pb-2 sm:pb-0 scrollbar-hide">
+                <button onclick="switchView('home')" id="nav-home" class="nav-link text-[10px] md:text-sm font-bold text-gray-400 hover:text-white transition-all whitespace-nowrap">INÍCIO</button>
+                <button onclick="switchView('public')" id="nav-public" class="nav-link text-[10px] md:text-sm font-bold text-gray-400 hover:text-white transition-all whitespace-nowrap">PÚBLICO</button>
+                <button onclick="switchView('admin')" id="nav-admin" class="nav-link text-[10px] md:text-sm font-bold text-gray-400 hover:text-white transition-all whitespace-nowrap">ADMIN</button>
+                <button onclick="switchView('settings')" id="nav-settings" class="nav-link text-[10px] md:text-sm font-bold text-gray-400 hover:text-white transition-all whitespace-nowrap">AJUSTES</button>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div id="navbar-court-status" class="hidden xl:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
+                    <!-- Injected by JS -->
+                </div>
+
+                <button onclick="toggleTheme()" class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all" title="Alternar Tema">
+                    <i id="theme-icon" class="fas fa-moon text-indigo-400 text-sm md:text-base"></i>
+                </button>
+                
+                <div class="hidden sm:flex flex-col items-end">
+                    <span class="text-[8px] md:text-xs font-black text-emerald-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> ONLINE
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 md:p-8 lg:p-12">
+        <!-- Home View -->
+        <div id="home-view" class="view space-y-16 py-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                <div class="space-y-10">
+                    <div class="flex justify-between items-center">
+                        <div class="inline-flex items-center gap-3 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                            <span class="w-2 h-2 bg-indigo-400 rounded-full animate-ping"></span>
+                            <span class="text-xs font-black text-indigo-400 uppercase tracking-widest">Dashboard de Hoje</span>
+                        </div>
+                        <button onclick="exportDashboardData()" class="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 font-black text-[10px] uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-2">
+                            <i class="fas fa-file-export"></i> Exportar Dados
+                        </button>
+                    </div>
+                    
+                    <h2 class="text-6xl font-black leading-none tracking-tight text-white">
+                        Visão Geral do <br> <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Seu Clube</span>
+                    </h2>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Quadras Ocupadas</p>
+                            <p id="stat-occupied" class="text-4xl font-black text-white">0</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Na Espera</p>
+                            <p id="stat-wait" class="text-4xl font-black text-indigo-400">0</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Jogos Hoje</p>
+                            <p id="stat-total" class="text-4xl font-black text-emerald-400">0</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Média Jogo</p>
+                            <p id="stat-avg" class="text-4xl font-black text-purple-400">--</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Espera Média</p>
+                            <p id="stat-avg-wait" class="text-4xl font-black text-indigo-300">--</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Sócio do Dia</p>
+                            <p id="stat-top-player" class="text-lg font-black text-white truncate">--</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-8 rounded-[2.5rem] space-y-6">
+                        <h3 class="text-xl font-black text-white flex items-center gap-3">
+                            <i class="fas fa-chart-line text-indigo-400"></i>
+                            Análise de Ocupação
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Quadra Mais Utilizada</p>
+                                <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span id="stat-top-court" class="font-bold text-white">--</span>
+                                    <span id="stat-top-court-count" class="text-xs font-black text-indigo-400">0 jogos</span>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horário de Pico</p>
+                                <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span id="stat-peak-hour" class="font-bold text-white">--</span>
+                                    <span id="stat-peak-count" class="text-xs font-black text-purple-400">0 entradas</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Distribuição por Atividade</p>
+                            <div id="stat-activity-distribution" class="flex h-4 rounded-full overflow-hidden bg-white/5 border border-white/10">
+                                <!-- Injected by JS -->
+                            </div>
+                            <div id="stat-activity-legend" class="flex flex-wrap gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                <!-- Injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute inset-0 bg-indigo-500/20 blur-[120px] rounded-full"></div>
+                    <div class="glass-card p-10 rounded-[3rem] relative overflow-hidden h-full">
+                        <div class="flex justify-between items-center mb-8">
+                            <h3 class="text-xl font-black text-white">Histórico Recente</h3>
+                            <button onclick="switchView('admin')" class="text-xs font-black text-indigo-400 hover:text-white transition-all uppercase tracking-widest">Ver Tudo</button>
+                        </div>
+                        <div class="space-y-4" id="home-recent-activity">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="admin-view" class="view hidden space-y-12">
+            <div class="flex flex-col md:flex-row justify-between items-end gap-6">
+                <div>
+                    <h2 class="text-5xl font-black tracking-tighter">Gerenciamento <span class="text-indigo-400">Mestre</span></h2>
+                    <p class="text-gray-500 font-bold mt-2">Controle de ocupação, aulas e bloqueios técnicos.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openBookingModal('queue')" class="btn-primary px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">
+                        Inscrição Fila
+                    </button>
+                    <button onclick="openBookingModal('court')" class="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all">
+                        Inscrição Direta
+                    </button>
+                    <button onclick="openMemberModal()" class="px-6 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-black text-xs uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all">Cadastrar Sócio</button>
+                    <button onclick="clearAllData()" class="px-6 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 font-black text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Limpar Tudo</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="admin-grid">
+                <!-- Injected by JS -->
+            </div>
+
+            <!-- Banco de Dados JSON (Re-adicionado) -->
+            <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                <h3 class="text-xl font-black border-b border-white/5 pb-4 flex justify-between items-center">
+                    Banco de Dados de Sócios (JSON)
+                    <button onclick="document.getElementById('db-json-container').classList.toggle('hidden')" class="text-xs text-indigo-400 font-bold uppercase tracking-widest">Ver/Ocultar</button>
+                </h3>
+                <div id="db-json-container" class="hidden space-y-6">
+                    <div class="space-y-2">
+                        <textarea id="set-members" oninput="updateSettingsSilent()" class="w-full input-glass p-6 rounded-2xl font-mono text-xs h-64 custom-scrollbar" placeholder='{"1001": ["João", "Maria"]}'></textarea>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="updateSettings()" class="btn-primary px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Atualizar Base</button>
+                        <button onclick="exportMembers()" class="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 font-black text-xs uppercase tracking-widest hover:bg-white/10">Exportar Base</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Public View -->
+        <div id="public-view" class="view hidden space-y-12">
+            <div class="flex flex-col items-center text-center space-y-4 pt-6">
+                <div id="public-clock" class="text-5xl font-black text-indigo-400 mb-2">00:00:00</div>
+                <div class="flex items-center gap-4 text-gray-400 font-bold uppercase tracking-widest text-lg">
+                    <span id="public-date">--/--/----</span>
+                    <span class="w-1.5 h-1.5 bg-white/20 rounded-full"></span>
+                    <span id="public-weekday">----------</span>
+                </div>
+                <h2 class="text-7xl font-black tracking-tight text-white">Status das <span class="text-indigo-400">Quadras</span></h2>
+                <p class="text-gray-300 text-2xl font-medium max-w-2xl mx-auto">Disponibilidade em Tempo Real</p>
+            </div>
+
+            <div id="public-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Injected by JS -->
+            </div>
+
+            <div class="glass-card p-10 rounded-[3rem] max-w-full mx-auto">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-4xl font-black tracking-tighter text-white">Fila de Espera</h3>
+                    <div class="px-5 py-2.5 bg-indigo-500/20 border border-indigo-500/40 rounded-xl text-indigo-300 text-sm font-black tracking-widest">
+                        ORDEM DE CHAMADA
+                    </div>
+                </div>
+                <div id="public-waitlist" class="space-y-4">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settings-view" class="view hidden space-y-12">
+            <h2 class="text-5xl font-black tracking-tighter">Personalização</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                    <h3 class="text-2xl font-black border-b border-white/10 pb-4 text-white">Status da Nuvem</h3>
+                    <div class="space-y-6">
+                        <div class="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+                            <p class="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2"><i class="fas fa-check-circle"></i> Sincronização Ativa</p>
+                            <p class="text-[10px] text-gray-400 leading-relaxed">O sistema está configurado para conectar automaticamente ao Firebase. Seus companheiros verão as mudanças em tempo real sem nenhuma ação manual.</p>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div>
+                                <p class="text-xs font-bold text-white">Status da Nuvem</p>
+                                <p id="cloud-status" class="text-[10px] text-gray-500 font-black uppercase tracking-widest">DESCONECTADO</p>
+                            </div>
+                            <button onclick="connectFirebase()" class="px-4 py-2 bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 transition-all">RECONECTAR</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                    <h3 class="text-2xl font-black border-b border-white/10 pb-4 text-white">Configurações do Clube</h3>
+                    <div class="space-y-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Nome do Clube</label>
+                            <input type="text" id="set-club-name" onchange="updateSettings()" class="w-full input-glass p-5 rounded-2xl font-bold text-base">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Quadras (Nomes separados por vírgula)</label>
+                            <input type="text" id="set-courts" onchange="updateSettings()" class="w-full input-glass p-5 rounded-2xl font-bold text-base">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Cor Principal</label>
+                            <input type="color" id="set-color" onchange="updateSettings()" class="w-full h-16 rounded-2xl bg-transparent border border-white/20 p-1 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                    <h3 class="text-2xl font-black border-b border-white/10 pb-4 text-white">Sincronização & Backup</h3>
+                    <div class="space-y-6">
+                        <div class="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                            <p class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2"><i class="fas fa-info-circle"></i> Uso Simultâneo</p>
+                            <p class="text-sm text-gray-400 leading-relaxed">Este sistema armazena dados no navegador local. Para sincronizar em tempo real em diferentes computadores, utilize uma solução de banco de dados na nuvem ou mantenha o backup atualizado.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="exportFullSystemData()" class="w-full py-4 rounded-2xl bg-white/5 border border-white/10 font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                                <i class="fas fa-download"></i> Backup Total
+                            </button>
+                            <button onclick="document.getElementById('import-file').click()" class="w-full py-4 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-black text-[10px] uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center gap-2">
+                                <i class="fas fa-upload"></i> Restaurar
+                            </button>
+                            <input type="file" id="import-file" class="hidden" accept=".json" onchange="importFullSystemData(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Inscrição -->
+    <div id="booking-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeBookingModal()"></div>
+        <div class="modal-theme-fix w-full max-w-4xl rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <div>
+                    <h3 class="text-3xl font-black" id="booking-modal-title">Nova Reserva</h3>
+                    <p class="text-indigo-400 font-bold text-xs uppercase tracking-widest" id="booking-modal-subtitle">Preencha os dados oficiais</p>
+                </div>
+                <button onclick="closeBookingModal()" class="text-gray-500 hover:text-white text-2xl transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form id="booking-form" class="p-10 grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div class="space-y-2" id="court-field-box">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Quadra *</label>
+                    <select id="field-court" class="w-full input-glass p-4 rounded-2xl font-bold"></select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Atividade *</label>
+                    <select id="field-activity" required class="w-full input-glass p-4 rounded-2xl font-bold" onchange="toggleDuration()">
+                        <option value="Dupla">🎾 Jogo Dupla</option>
+                        <option value="Simples">🎾 Jogo Simples</option>
+                        <option value="Ranking infantil">🏆 Ranking Infantil</option>
+                        <option value="Ranking adulto">🏆 Ranking Adulto</option>
+                        <option value="Bate-bola">🔄 Bate-bola</option>
+                        <option value="Individual">🏃 Individual</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horário de Inscrição *</label>
+                    <input type="time" id="field-start" required class="w-full input-glass p-4 rounded-2xl font-bold">
+                </div>
+                <div id="dur-box" class="space-y-2 hidden">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Duração Fixa</label>
+                    <input type="text" value="60 minutos" readonly class="w-full input-glass p-4 rounded-2xl font-bold opacity-50">
+                </div>
+
+                <div class="md:col-span-2 space-y-4 pt-4 border-t border-white/5">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Participantes (Título + Nome)</label>
+                    <div id="player-rows" class="grid grid-cols-1 gap-4">
+                        <!-- 4 rows injected -->
+                    </div>
+                </div>
+
+                <div class="md:col-span-2 space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Observação (Opcional)</label>
+                    <input type="text" id="field-observation" placeholder="Ex: Aula de teste, Convidado, etc." class="w-full input-glass p-4 rounded-2xl font-bold">
+                </div>
+
+                <div class="md:col-span-2 flex gap-4 pt-6">
+                    <button type="button" onclick="closeBookingModal()" class="flex-1 px-8 py-5 rounded-3xl font-black uppercase tracking-widest text-xs border border-white/10 hover:bg-white/5 transition-all">Cancelar</button>
+                    <button type="submit" class="flex-1 btn-primary px-8 py-5 rounded-3xl font-black uppercase tracking-widest text-xs shadow-2xl">Salvar Reserva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Admin Opções -->
+    <div id="admin-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeAdminModal()"></div>
+        <div class="modal-theme-fix w-full max-w-md rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black" id="admin-court-title">Quadra</h3>
+                <button onclick="closeAdminModal()" class="text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-8 space-y-4">
+                <div class="space-y-2 mb-4">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Observação do Status</label>
+                    <input type="text" id="admin-observation" placeholder="Ex: Chuva forte, Troca de rede, Prof. João" class="w-full input-glass p-4 rounded-2xl font-bold text-sm">
+                </div>
+                <div class="grid grid-cols-1 gap-3">
+                    <button onclick="setCourtStatus('lesson')" class="w-full py-5 rounded-2xl status-lesson font-black uppercase tracking-widest text-xs shadow-lg">Entrar em Aula</button>
+                    <button onclick="setCourtStatus('rain')" class="w-full py-5 rounded-2xl status-rain font-black uppercase tracking-widest text-xs shadow-lg">Interrompido por Chuva</button>
+                    <button onclick="setCourtStatus('tournament')" class="w-full py-5 rounded-2xl status-tournament font-black uppercase tracking-widest text-xs shadow-lg">Campeonato</button>
+                    <button onclick="setCourtStatus('blocked')" class="w-full py-5 rounded-2xl status-blocked font-black uppercase tracking-widest text-xs shadow-lg">Bloquear Manutenção</button>
+                    <button onclick="setCourtStatus('free')" class="w-full py-5 rounded-2xl bg-white/5 hover:bg-white/10 transition-all font-black uppercase tracking-widest text-xs border border-white/10">Liberar Quadra</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Jogo -->
+    <div id="edit-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeEditModal()"></div>
+        <div class="modal-theme-fix w-full max-w-md rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black">Editar Agendamento</h3>
+                <button onclick="closeEditModal()" class="text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-10 space-y-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Atividade</label>
+                    <select id="edit-activity" class="w-full input-glass p-4 rounded-2xl font-bold">
+                        <option value="Dupla">🎾 Jogo Dupla</option>
+                        <option value="Simples">🎾 Jogo Simples</option>
+                        <option value="Ranking infantil">🏆 Ranking Infantil</option>
+                        <option value="Ranking adulto">🏆 Ranking Adulto</option>
+                        <option value="Bate-bola">🔄 Bate-bola</option>
+                        <option value="Individual">🏃 Individual</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Observação</label>
+                    <input type="text" id="edit-observation" class="w-full input-glass p-4 rounded-2xl font-bold">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Inscrição</label>
+                        <input type="time" id="edit-registration" class="w-full input-glass p-4 rounded-2xl font-bold">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Início</label>
+                        <input type="time" id="edit-start" class="w-full input-glass p-4 rounded-2xl font-bold">
+                    </div>
+                </div>
+                <button onclick="saveEdit()" class="w-full btn-primary py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cadastro Sócio -->
+    <div id="member-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeMemberModal()"></div>
+        <div class="modal-theme-fix w-full max-w-md rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black">Cadastrar Sócio</h3>
+                <button onclick="closeMemberModal()" class="text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="member-form" class="p-10 space-y-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Número do Título *</label>
+                    <input type="text" id="mem-title" required placeholder="Ex: 1001" class="w-full input-glass p-4 rounded-2xl font-bold">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nomes (Separados por vírgula) *</label>
+                    <textarea id="mem-names" required placeholder="Ex: João Silva, Maria Silva" class="w-full input-glass p-4 rounded-2xl font-bold h-32"></textarea>
+                </div>
+                <button type="submit" class="w-full btn-primary py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg">Salvar Cadastro</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const HARDCODED_FIREBASE_CONFIG = { 
+            "apiKey": "AIzaSyDta2ReINHNdfsyqma8zrPqUuR40gXEyw8", 
+            "authDomain": "reserva-de-quadras-ff122.firebaseapp.com", 
+            "projectId": "reserva-de-quadras-ff122", 
+            "storageBucket": "reserva-de-quadras-ff122.firebasestorage.app", 
+            "messagingSenderId": "535600657201", 
+            "appId": "1:535600657201:web:d3997814a9ebdec8237610" 
+        };
+
+        // --- State & Config ---
+        let state = {
+            courts: JSON.parse(localStorage.getItem('rq_pro_courts')) || ["Quadra 1", "Quadra 2", "Quadra 3", "Quadra 4", "Quadra 5", "Quadra 6", "Quadra Rápida"],
+            bookings: JSON.parse(localStorage.getItem('rq_pro_bookings')) || [],
+            waitlist: JSON.parse(localStorage.getItem('rq_pro_waitlist')) || [],
+            history: Array.isArray(JSON.parse(localStorage.getItem('rq_pro_history'))) ? JSON.parse(localStorage.getItem('rq_pro_history')) : [], // [ { date, weekday, court, players, type, observation, startTime, endTime } ]
+            members: JSON.parse(localStorage.getItem('rq_pro_members')) || {
+                "1001": ["João Silva", "Maria Silva", "Pedro"],
+                "2002": ["Carlos Santos", "Ana"],
+                "3003": ["Roberto Oliveira"],
+                "4004": ["Fernando Costa", "Julia"]
+            },
+            settings: JSON.parse(localStorage.getItem('rq_pro_settings')) || { 
+                clubName: "ReservaQuadras",
+                primaryColor: "#6366f1",
+                theme: "dark"
+            },
+            activeAdminCourt: null
+        };
+
+        // Forçar a utilização da configuração do Firebase correta
+        state.settings.firebaseConfig = HARDCODED_FIREBASE_CONFIG;
+
+        // Firebase Sync
+        let firebaseApp = null;
+        let firebaseDb = null;
+        let isCloudSyncing = false;
+
+        function connectFirebase() {
+            if (!state.settings.firebaseConfig) {
+                showToast("Cole sua configuração do Firebase primeiro!", "warning");
+                return;
+            }
+
+            try {
+                if (firebaseApp) {
+                    firebaseApp.delete();
+                }
+                
+                firebaseApp = firebase.initializeApp(state.settings.firebaseConfig);
+                firebaseDb = firebase.database();
+                const statusEl = document.getElementById('cloud-status');
+                
+                // Listener para mudanças na nuvem
+                firebaseDb.ref('rq_state').on('value', (snapshot) => {
+                    const cloudData = snapshot.val();
+                    if (cloudData && !isCloudSyncing) {
+                        console.log("Sincronizando da nuvem...");
+                        
+                        // Atualização atômica para evitar inconsistências
+                        state.courts = cloudData.courts || state.courts;
+                        state.bookings = cloudData.bookings || [];
+                        state.waitlist = cloudData.waitlist || [];
+                        state.history = cloudData.history || [];
+                        state.members = cloudData.members || state.members;
+                        
+                        if (cloudData.settings) {
+                            state.settings.clubName = cloudData.settings.clubName || state.settings.clubName;
+                            state.settings.primaryColor = cloudData.settings.primaryColor || state.settings.primaryColor;
+                        }
+                        
+                        saveLocal(); 
+                        render();
+                        
+                        // Pequeno feedback visual no console/toast se necessário
+                        console.log("Estado atualizado via Nuvem!");
+                    }
+                });
+
+                statusEl.innerText = "CONECTADO";
+                statusEl.classList.replace('text-gray-500', 'text-emerald-400');
+                showToast("Conectado à Nuvem!", "success");
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao conectar ao Firebase!", "error");
+            }
+        }
+
+        // Apply theme on load
+        applyTheme();
+
+        function applyTheme() {
+            let theme = state.settings.theme || 'dark';
+            
+            if(theme === 'auto') {
+                const hour = new Date().getHours();
+                // Entre 07:00 e 17:59 fica claro, caso contrário escuro
+                theme = (hour >= 7 && hour < 18) ? 'light' : 'dark';
+            }
+            
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeIcon();
+        }
+
+        function toggleTheme() {
+            const themes = ['dark', 'light', 'auto'];
+            const currentIdx = themes.indexOf(state.settings.theme || 'dark');
+            const nextIdx = (currentIdx + 1) % themes.length;
+            
+            state.settings.theme = themes[nextIdx];
+            applyTheme();
+            save();
+            
+            const labels = { 'dark': 'Escuro', 'light': 'Claro', 'auto': 'Automático' };
+            showToast(`Tema ${labels[state.settings.theme]} ativado`, 'info');
+        }
+
+        function updateThemeIcon() {
+            const icon = document.getElementById('theme-icon');
+            if(!icon) return;
+            
+            const mode = state.settings.theme || 'dark';
+            if(mode === 'auto') {
+                icon.className = 'fas fa-magic text-indigo-400';
+            } else if(mode === 'light') {
+                icon.className = 'fas fa-sun text-amber-500';
+            } else {
+                icon.className = 'fas fa-moon text-indigo-400';
+            }
+        }
+
+        // Garantir que a Quadra Rápida esteja presente se o usuário já tiver dados salvos
+        if(!state.courts.includes("Quadra Rápida")) {
+            state.courts.push("Quadra Rápida");
+            localStorage.setItem('rq_pro_courts', JSON.stringify(state.courts));
+        }
+
+        const today = new Date().toLocaleDateString('pt-BR');
+        const weekday = new Date().toLocaleDateString('pt-BR', { weekday: 'long' });
+
+        // --- Core Functions ---
+        function saveLocal() {
+            localStorage.setItem('rq_pro_courts', JSON.stringify(state.courts));
+            localStorage.setItem('rq_pro_bookings', JSON.stringify(state.bookings));
+            localStorage.setItem('rq_pro_waitlist', JSON.stringify(state.waitlist));
+            localStorage.setItem('rq_pro_history', JSON.stringify(state.history));
+            localStorage.setItem('rq_pro_members', JSON.stringify(state.members));
+            localStorage.setItem('rq_pro_settings', JSON.stringify(state.settings));
+        }
+
+        function save() {
+            saveLocal();
+            
+            // Sync to Firebase
+            if (firebaseDb) {
+                isCloudSyncing = true;
+                firebaseDb.ref('rq_state').set({
+                    courts: state.courts,
+                    bookings: state.bookings,
+                    waitlist: state.waitlist,
+                    history: state.history,
+                    members: state.members,
+                    settings: {
+                        clubName: state.settings.clubName,
+                        primaryColor: state.settings.primaryColor
+                    }
+                }).then(() => {
+                    isCloudSyncing = false;
+                }).catch(() => {
+                    isCloudSyncing = false;
+                });
+            }
+        }
+
+        function switchView(view) {
+            console.log("Switching to view:", view);
+            const targetView = document.getElementById(`${view}-view`);
+            if(!targetView) {
+                console.error("View not found:", view);
+                return;
+            }
+
+            gsap.to(".view", { opacity: 0, y: 20, duration: 0.3, onComplete: () => {
+                document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+                targetView.classList.remove('hidden');
+                
+                document.querySelectorAll('.nav-link').forEach(l => {
+                    l.classList.remove('active', 'text-white');
+                    l.classList.add('text-gray-400');
+                });
+                
+                const activeNavLink = document.getElementById(`nav-${view}`);
+                if(activeNavLink) {
+                    activeNavLink.classList.add('active', 'text-white');
+                    activeNavLink.classList.remove('text-gray-400');
+                }
+                
+                gsap.to(targetView, { opacity: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" });
+                render();
+            }});
+        }
+
+        // --- Modals ---
+        let currentBookingMode = 'court'; // 'court' ou 'queue'
+
+        function openBookingModal(mode = 'court') {
+            currentBookingMode = mode;
+            document.getElementById('booking-modal').classList.remove('hidden');
+            gsap.fromTo("#booking-modal > div:last-child", { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out" });
+            
+            const titleEl = document.getElementById('booking-modal-title');
+            const subtitleEl = document.getElementById('booking-modal-subtitle');
+            const courtBox = document.getElementById('court-field-box');
+            
+            if(mode === 'queue') {
+                titleEl.innerText = "Inscrição na Fila";
+                subtitleEl.innerText = "Entrar na fila de espera global";
+                courtBox.classList.add('hidden');
+                document.getElementById('field-court').required = false;
+            } else {
+                titleEl.innerText = "Inscrição Direta";
+                subtitleEl.innerText = "Alocar diretamente em uma quadra livre";
+                courtBox.classList.remove('hidden');
+                document.getElementById('field-court').required = true;
+            }
+
+            // Limpar formulário anterior
+            document.getElementById('booking-form').reset();
+            document.getElementById('field-observation').value = '';
+            document.getElementById('field-start').value = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            // Populate courts
+            const select = document.getElementById('field-court');
+            select.innerHTML = state.courts.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            // Player rows
+            const container = document.getElementById('player-rows');
+            container.innerHTML = '';
+            for(let i=0; i<4; i++) {
+                container.innerHTML += `
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="text" placeholder="Título" oninput="searchMember(${i}, this.value)" class="input-glass p-4 rounded-2xl text-sm font-bold">
+                        <select id="p-name-${i}" class="input-glass p-4 rounded-2xl text-sm font-bold">
+                            <option value="">Nome...</option>
+                        </select>
+                    </div>
+                `;
+            }
+        }
+
+        function closeBookingModal() {
+            gsap.to("#booking-modal > div:last-child", { scale: 0.8, opacity: 0, duration: 0.3, onComplete: () => {
+                document.getElementById('booking-modal').classList.add('hidden');
+            }});
+        }
+
+        function toggleDuration() {
+            const act = document.getElementById('field-activity').value;
+            document.getElementById('dur-box').classList.toggle('hidden', act !== 'Bate-bola');
+        }
+
+        function searchMember(idx, title) {
+            const cleanTitle = title.trim();
+            if(!cleanTitle) {
+                document.getElementById(`p-name-${idx}`).innerHTML = '<option value="">Nome...</option>';
+                return;
+            }
+
+            // Busca robusta: tenta direto, depois tenta encontrar a chave ignorando espaços
+            let names = state.members[cleanTitle];
+            
+            if(!names) {
+                // Tenta encontrar uma chave que, limpa de espaços, seja igual à busca
+                const foundKey = Object.keys(state.members).find(k => k.trim() === cleanTitle);
+                if(foundKey) names = state.members[foundKey];
+            }
+
+            // Se ainda não achou, tenta ver se a busca é um número e as chaves são números (ou vice-versa)
+            if(!names) {
+                const searchNum = parseFloat(cleanTitle);
+                const foundKey = Object.keys(state.members).find(k => {
+                    const keyNum = parseFloat(k);
+                    // Compara numericamente (ex: 1 == 1.0) ou por string exata
+                    return (!isNaN(searchNum) && !isNaN(keyNum) && searchNum === keyNum) || 
+                           String(k).trim() === String(cleanTitle);
+                });
+                if(foundKey) names = state.members[foundKey];
+            }
+
+            const select = document.getElementById(`p-name-${idx}`);
+            if(names && names.length > 0) {
+                select.innerHTML = '<option value="">Selecionar Nome...</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+            } else {
+                select.innerHTML = '<option value="">Título não encontrado</option>';
+            }
+            
+            if(state.history.some(h => h.date === today && h.titles && h.titles.includes(cleanTitle))) {
+                showToast(`Sócio ${cleanTitle} já jogou hoje! Ficará no fim da fila.`, 'warning');
+            }
+        }
+
+        // --- Admin Ops ---
+        function openAdminAction(court) {
+            state.activeAdminCourt = court;
+            document.getElementById('admin-court-title').innerText = court;
+            document.getElementById('admin-observation').value = ''; // Limpa a obs anterior
+            document.getElementById('admin-modal').classList.remove('hidden');
+            gsap.fromTo("#admin-modal > div:last-child", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 });
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        }
+
+        function openMemberModal() {
+            document.getElementById('member-modal').classList.remove('hidden');
+            gsap.fromTo("#member-modal > div:last-child", { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out" });
+        }
+
+        function closeMemberModal() {
+            gsap.to("#member-modal > div:last-child", { scale: 0.8, opacity: 0, duration: 0.3, onComplete: () => {
+                document.getElementById('member-modal').classList.add('hidden');
+            }});
+        }
+
+        let activeEditCourt = null;
+        function openEditModal(court) {
+            activeEditCourt = court;
+            const b = state.bookings.find(book => book.court === court);
+            if(b) {
+                document.getElementById('edit-activity').value = b.activity;
+                document.getElementById('edit-observation').value = b.observation || '';
+                document.getElementById('edit-registration').value = b.registrationTime || '';
+                document.getElementById('edit-start').value = b.startTime || '';
+                document.getElementById('edit-modal').classList.remove('hidden');
+                gsap.fromTo("#edit-modal > div:last-child", { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out" });
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        function saveEdit() {
+            const b = state.bookings.find(book => book.court === activeEditCourt);
+            if(b) {
+                b.activity = document.getElementById('edit-activity').value;
+                b.observation = document.getElementById('edit-observation').value.trim();
+                b.registrationTime = document.getElementById('edit-registration').value;
+                b.startTime = document.getElementById('edit-start').value;
+                
+                // Recalcular previsão se for bate-bola
+                if(b.activity === "Bate-bola" && b.startTime) {
+                    const [h, m] = b.startTime.split(':').map(Number);
+                    const end = new Date();
+                    end.setHours(h + 1, m);
+                    b.endTime = end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+
+                save();
+                render();
+                closeEditModal();
+                showToast("Alterações salvas!", "success");
+            }
+        }
+
+        document.getElementById('member-form').onsubmit = (e) => {
+            e.preventDefault();
+            const title = document.getElementById('mem-title').value.trim();
+            const names = document.getElementById('mem-names').value.split(',').map(n => n.trim()).filter(n => n !== '');
+
+            if(title && names.length > 0) {
+                state.members[title] = names;
+                save();
+                showToast(`Sócio ${title} cadastrado com sucesso!`, 'success');
+                closeMemberModal();
+                document.getElementById('member-form').reset();
+            }
+        };
+
+        function setCourtStatus(type) {
+            const obs = document.getElementById('admin-observation').value.trim();
+            state.bookings = state.bookings.filter(b => b.court !== state.activeAdminCourt);
+            
+            if(type !== 'free') {
+                state.bookings.push({
+                    id: Date.now(),
+                    court: state.activeAdminCourt,
+                    type: type,
+                    players: [type.toUpperCase()],
+                    observation: obs, // Salva a observação administrativa
+                    startTime: new Date().toTimeString().slice(0,5)
+                });
+            }
+            
+            save();
+            render();
+            closeAdminModal();
+            showToast(`Status da quadra atualizado!`, 'success');
+        }
+
+        // --- Submit ---
+        document.getElementById('booking-form').onsubmit = (e) => {
+            e.preventDefault();
+            const players = [];
+            const titles = [];
+            let repeat = false;
+
+            for(let i=0; i<4; i++) {
+                const t = document.querySelector(`#player-rows div:nth-child(${i+1}) input`).value;
+                const n = document.getElementById(`p-name-${i}`).value;
+                if(t && n) {
+                    players.push(n);
+                    titles.push(t);
+                    if(state.history.some(h => h.date === today && h.titles && h.titles.includes(t))) repeat = true;
+                }
+            }
+
+            if(players.length === 0) return showToast("Adicione jogadores!", "error");
+
+            const entry = {
+                id: Date.now(),
+                court: currentBookingMode === 'queue' ? null : document.getElementById('field-court').value,
+                activity: document.getElementById('field-activity').value,
+                registrationTime: document.getElementById('field-start').value, // Horário de inscrição (manual ou automático)
+                startTime: null, // Será preenchido ao iniciar o jogo
+                endTime: null,
+                observation: document.getElementById('field-observation').value.trim(),
+                players,
+                titles,
+                repeat
+            };
+
+            if(currentBookingMode === 'queue') {
+                state.waitlist.push(entry);
+                showToast("Adicionado à fila de espera global!", "info");
+                save(); // GARANTIR SALVAMENTO IMEDIATO
+            } else {
+                processEntry(entry);
+            }
+            
+            closeBookingModal();
+            render();
+        };
+
+        function processEntry(entry) {
+            console.log("Processing entry:", entry);
+            const court = entry.court;
+            const occupied = state.bookings.find(b => b.court === court);
+            
+            if(occupied || entry.repeat) {
+                state.waitlist.push(entry);
+                if(entry.repeat) showToast("Sócio já jogou hoje: Fim da fila.", "warning");
+                else showToast("Quadra ocupada: Movido para a fila.", "info");
+            } else {
+                // Início imediato se for inscrição direta em quadra livre
+                entry.startTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                
+                // Cálculo automático de 1h para Bate-bola
+                if(entry.activity === "Bate-bola") {
+                    const [h, m] = entry.startTime.split(':').map(Number);
+                    const end = new Date();
+                    end.setHours(h + 1, m);
+                    entry.endTime = end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+
+                state.bookings.push(entry);
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            }
+            save();
+        }
+
+        // --- Settings ---
+        function updateSettingsSilent() {
+            try {
+                let input = document.getElementById('set-members').value.trim();
+                if(input) {
+                    let parsed;
+                    try { parsed = JSON.parse(input); } 
+                    catch(e) { parsed = JSON.parse(input.replace(/'/g, '"')); }
+                    if(typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                        state.members = parsed;
+                    }
+                }
+                saveLocal();
+            } catch(e) {}
+        }
+
+        function updateSettings() {
+            try {
+                let input = document.getElementById('set-members').value.trim();
+                let parsed;
+                try {
+                    parsed = JSON.parse(input);
+                } catch(e) {
+                    // Tenta substituir aspas simples por duplas
+                    parsed = JSON.parse(input.replace(/'/g, '"'));
+                }
+
+                if(typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                    throw new Error("Invalid JSON");
+                }
+                state.members = parsed;
+            } catch(e) {
+                showToast("Erro no formato do Banco de Dados! Use JSON válido (ex: {'1001': ['Nome']})", "error");
+                return;
+            }
+
+            state.settings.clubName = document.getElementById('set-club-name').value;
+            state.courts = document.getElementById('set-courts').value.split(',').map(c => c.trim());
+            state.settings.primaryColor = document.getElementById('set-color').value;
+            
+            document.documentElement.style.setProperty('--primary', state.settings.primaryColor);
+            document.getElementById('brand-name').innerHTML = `${state.settings.clubName.slice(0,7)}<span class="text-indigo-400">${state.settings.clubName.slice(7)}</span>`;
+            
+            save();
+            showToast("Configurações aplicadas!", "success");
+            render();
+        }
+
+        function exportMembers() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.members, null, 4));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href",     dataStr);
+            downloadAnchorNode.setAttribute("download", "socios_reservaquadras.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        // --- Render ---
+        function render() {
+            renderPublic();
+            renderAdmin();
+            renderActivity();
+            updateDashboard();
+            updateNavbarStatus();
+            
+            // Sync settings inputs
+            const clubNameEl = document.getElementById('set-club-name');
+            const courtsEl = document.getElementById('set-courts');
+            const colorEl = document.getElementById('set-color');
+            const membersEl = document.getElementById('set-members');
+
+            if(clubNameEl) clubNameEl.value = state.settings.clubName;
+            if(courtsEl) courtsEl.value = state.courts.join(', ');
+            if(colorEl) colorEl.value = state.settings.primaryColor;
+            if(membersEl) membersEl.value = JSON.stringify(state.members, null, 4);
+        }
+
+        function updateDashboard() {
+            const todayHistory = state.history.filter(h => h.date === today && !h.type);
+            const occupied = state.bookings.filter(b => !b.type).length;
+            const wait = state.waitlist.length;
+            const total = todayHistory.length;
+            
+            // Cálculo de tempos
+            const avgPlay = todayHistory.length > 0 
+                ? Math.round(todayHistory.reduce((acc, curr) => acc + (curr.playDuration || 0), 0) / todayHistory.length)
+                : 0;
+            
+            const avgWait = todayHistory.length > 0 
+                ? Math.round(todayHistory.reduce((acc, curr) => acc + (curr.waitDuration || 0), 0) / todayHistory.length)
+                : 0;
+
+            document.getElementById('stat-occupied').innerText = occupied;
+            document.getElementById('stat-wait').innerText = wait;
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-avg').innerText = avgPlay > 0 ? `${avgPlay}m` : "--";
+            
+            const avgWaitEl = document.getElementById('stat-avg-wait');
+            if(avgWaitEl) avgWaitEl.innerText = avgWait > 0 ? `${avgWait}m` : "--";
+
+            // Sócio do Dia
+            const playerCounts = {};
+            todayHistory.forEach(h => h.players.forEach(p => playerCounts[p] = (playerCounts[p] || 0) + 1));
+            const topPlayer = Object.entries(playerCounts).sort((a,b) => b[1] - a[1])[0];
+            document.getElementById('stat-top-player').innerText = topPlayer ? topPlayer[0] : "--";
+
+            // Quadra Mais Utilizada
+            const courtCounts = {};
+            todayHistory.forEach(h => courtCounts[h.court] = (courtCounts[h.court] || 0) + 1);
+            const topCourt = Object.entries(courtCounts).sort((a,b) => b[1] - a[1])[0];
+            document.getElementById('stat-top-court').innerText = topCourt ? topCourt[0] : "--";
+            document.getElementById('stat-top-court-count').innerText = topCourt ? `${topCourt[1]} jogos` : "0 jogos";
+
+            // Horário de Pico
+            const hourCounts = {};
+            todayHistory.forEach(h => {
+                const hour = h.startTime ? h.startTime.split(':')[0] : null;
+                if(hour) hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+            });
+            const peakHour = Object.entries(hourCounts).sort((a,b) => b[1] - a[1])[0];
+            document.getElementById('stat-peak-hour').innerText = peakHour ? `${peakHour[0]}:00` : "--";
+            document.getElementById('stat-peak-count').innerText = peakHour ? `${peakHour[1]} entradas` : "0 entradas";
+
+            // Distribuição por Atividade
+            const activities = {};
+            todayHistory.forEach(h => activities[h.activity] = (activities[h.activity] || 0) + 1);
+            const totalActs = Object.values(activities).reduce((a,b) => a+b, 0);
+            
+            const distContainer = document.getElementById('stat-activity-distribution');
+            const legendContainer = document.getElementById('stat-activity-legend');
+            
+            if(distContainer && legendContainer) {
+                distContainer.innerHTML = '';
+                legendContainer.innerHTML = '';
+                
+                const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-emerald-500', 'bg-amber-500', 'bg-blue-500', 'bg-rose-500'];
+                Object.entries(activities).forEach(([act, count], i) => {
+                    const pct = (count / totalActs) * 100;
+                    const color = colors[i % colors.length];
+                    
+                    distContainer.innerHTML += `<div class="${color}" style="width: ${pct}%" title="${act}: ${count}"></div>`;
+                    legendContainer.innerHTML += `
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full ${color}"></span>
+                            <span>${act} (${Math.round(pct)}%)</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function exportDashboardData() {
+            if(state.history.length === 0) return showToast("Nenhum dado para exportar!", "warning");
+            
+            // Define o delimitador (ponto e vírgula costuma ser melhor para o Excel em PT-BR)
+            const sep = ";";
+            const headers = ["Data", "Dia", "Quadra", "Jogadores", "Atividade", "Inscrição", "Início", "Fim", "Espera (min)", "Jogo (min)"];
+            const rows = state.history.map(h => [
+                h.date,
+                h.weekday,
+                h.court,
+                h.players.join(' | '),
+                h.activity,
+                h.registrationTime,
+                h.startTime || "--",
+                h.endTime || "--",
+                h.waitDuration || 0,
+                h.playDuration || 0
+            ]);
+
+            const csvContent = [headers, ...rows].map(e => e.join(sep)).join("\n");
+            const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `historico_geral_quadras_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Histórico completo exportado!", "success");
+        }
+
+        function exportFullSystemData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 4));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href",     dataStr);
+            downloadAnchorNode.setAttribute("download", `backup_sistema_quadras_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showToast("Backup do sistema concluído!", "success");
+        }
+
+        function importFullSystemData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedState = JSON.parse(e.target.result);
+                    if (confirm("Isso irá substituir TODOS os dados atuais. Deseja continuar?")) {
+                        state = { ...state, ...importedState };
+                        save();
+                        render();
+                        showToast("Dados restaurados com sucesso!", "success");
+                    }
+                } catch (err) {
+                    showToast("Erro ao importar arquivo!", "error");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function updateNavbarStatus() {
+            const container = document.getElementById('navbar-court-status');
+            container.innerHTML = state.courts.map(c => {
+                const b = state.bookings.find(book => book.court === c);
+                let color = "bg-emerald-500";
+                if(b) {
+                    if(b.type === 'rain') color = "bg-blue-500";
+                    else if(b.type === 'blocked') color = "bg-red-500";
+                    else if(b.type === 'lesson' || b.type === 'tournament') color = "bg-amber-500";
+                    else color = "bg-indigo-500";
+                }
+                return `<div title="${c}" class="w-2.5 h-2.5 rounded-full ${color} shadow-lg"></div>`;
+            }).join('');
+        }
+
+        function renderPublic() {
+            const grid = document.getElementById('public-grid');
+            grid.innerHTML = state.courts.map(c => {
+                const b = state.bookings.find(book => book.court === c);
+                let bgClass = "bg-white/5";
+                let statusLabel = "LIVRE";
+                let players = "Pronta para uso";
+                
+                if(b) {
+                    if(b.type === 'blocked') { bgClass = "status-blocked"; statusLabel = "BLOQUEADA"; players = "MANUTENÇÃO"; }
+                    else if(b.type === 'lesson') { bgClass = "status-lesson"; statusLabel = "AULA"; players = "RESERVADO PROFESSOR"; }
+                    else if(b.type === 'rain') { bgClass = "status-rain"; statusLabel = "CHUVA"; players = "QUADRA MOLHADA"; }
+                    else if(b.type === 'tournament') { bgClass = "status-tournament"; statusLabel = "TORNEIO"; players = "COMPETIÇÃO ATIVA"; }
+                    else { 
+                        bgClass = "bg-indigo-500/20"; 
+                        statusLabel = b.startTime || "AGUARDANDO"; 
+                        players = b.players.map(p => `<div class="truncate border-b border-white/5 pb-1 last:border-0">${p}</div>`).join(''); 
+                    }
+                }
+
+                return `
+                    <div class="glass-card p-6 rounded-[2rem] flex flex-col justify-between relative overflow-hidden ${b ? 'border-indigo-500/50' : 'border-white/10'} ${bgClass} shadow-xl">
+                        ${b && b.type === 'rain' ? '<div class="rain-effect"></div>' : ''}
+                        
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-3xl font-black text-white">${c}</h4>
+                            <span class="px-4 py-2 rounded-xl text-sm font-black tracking-widest ${b ? 'bg-white/20 text-white' : 'bg-emerald-500/30 text-emerald-300'}">${statusLabel}</span>
+                        </div>
+
+                        <div class="flex-1 flex flex-col justify-center my-4 overflow-hidden">
+                            <p class="text-[12px] font-bold ${b && b.type ? 'text-white/60' : 'text-gray-400'} uppercase tracking-widest mb-3">Ocupação Atual</p>
+                            <div class="text-2xl font-black text-white leading-tight space-y-1.5">
+                                ${players}
+                            </div>
+                        </div>
+
+                        <div class="mt-auto">
+                            ${b && !b.type ? `
+                                <div class="flex justify-between items-end border-t border-white/5 pt-4">
+                                    <div class="space-y-1">
+                                        <p class="text-xl font-black text-indigo-400 uppercase tracking-widest">Inscrição: ${b.registrationTime}</p>
+                                    </div>
+                                    ${b.endTime ? `<p class="text-sm font-black text-purple-400 uppercase tracking-widest">Previsão: ${b.endTime}</p>` : ''}
+                                </div>
+                            ` : ''}
+                            ${b && b.observation ? `<p class="text-lg font-bold text-white border-l-4 border-indigo-400 pl-4 py-1 bg-white/5 rounded-r-xl tracking-tight leading-none italic mt-4">${b.observation}</p>` : ''}
+                            ${!b ? '<div class="h-2 bg-emerald-500/20 rounded-full overflow-hidden mt-4"><div class="w-full h-full bg-emerald-400"></div></div>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const wait = document.getElementById('public-waitlist');
+            wait.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"; // Grid de cartões menores
+            wait.innerHTML = state.waitlist.map((item, i) => `
+                <div class="glass-card p-5 rounded-3xl border border-indigo-500/20 bg-indigo-500/5 flex flex-col justify-between min-h-[180px]">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="px-3 py-1 bg-indigo-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest">Grupo ${i+1}</span>
+                        <span class="text-[10px] font-bold text-indigo-300">${item.registrationTime}</span>
+                    </div>
+                    
+                    <div class="flex-1 mb-4">
+                        <p class="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Jogadores</p>
+                        <div class="text-sm font-bold text-white leading-tight space-y-1">
+                            ${item.players.map(p => `<div class="truncate border-b border-white/5 pb-0.5 last:border-0">${p}</div>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-white/5">
+                        <p class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">${item.activity}</p>
+                    </div>
+                </div>
+            `).join('') || '<div class="col-span-full"><p class="text-center text-gray-400 font-bold py-12 text-xl uppercase tracking-widest opacity-50">Fila de Espera Vazia</p></div>';
+        }
+
+        function renderAdmin() {
+            const grid = document.getElementById('admin-grid');
+            grid.innerHTML = state.courts.map(c => {
+                const b = state.bookings.find(book => book.court === c);
+                let bgClass = "";
+                if(b) {
+                    if(b.type === 'blocked') bgClass = "status-blocked";
+                    else if(b.type === 'lesson') bgClass = "status-lesson";
+                    else if(b.type === 'rain') bgClass = "status-rain";
+                    else if(b.type === 'tournament') bgClass = "status-tournament";
+                }
+                return `
+                    <div class="glass-card p-6 rounded-[2rem] border-white/10 ${bgClass}">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-lg font-black text-white">${c}</span>
+                            <div class="flex gap-2">
+                                ${b ? `<button onclick="openEditModal('${c}')" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/20 border border-white/10 transition-all"><i class="fas fa-edit text-indigo-300 text-xs"></i></button>` : ''}
+                                <button onclick="openAdminAction('${c}')" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/20 border border-white/10 transition-all">
+                                    <i class="fas fa-cog text-indigo-300 text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="py-2">
+                            ${b ? `
+                                <p class="text-xs font-black text-indigo-300 uppercase tracking-widest mb-1 ${bgClass ? 'text-white' : ''}">${b.type === 'rain' ? 'CHUVA' : (b.type ? b.type.toUpperCase() : b.activity)}</p>
+                                <div class="text-xs font-medium ${bgClass ? 'text-white/90' : 'text-gray-200'} space-y-0.5 mb-3">
+                                    ${b.players.map(p => `<div class="truncate">${p}</div>`).join('')}
+                                </div>
+                                <div class="text-[10px] text-gray-400 mb-3">
+                                    Insc: ${b.registrationTime} | Início: ${b.startTime || '--:--'}
+                                </div>
+                                ${b.observation ? `<p class="text-[10px] font-bold text-indigo-300 mt-1 border-l-2 border-indigo-400 pl-2 py-0.5 italic">"${b.observation}"</p>` : ''}
+                                
+                                <div class="grid grid-cols-2 gap-2 mt-4">
+                                    ${!b.startTime ? `<button onclick="startMatch('${c}')" class="w-full py-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black text-[10px] uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">Iniciar</button>` : ''}
+                                    <button onclick="releaseCourt('${c}')" class="${!b.startTime ? '' : 'col-span-2'} w-full py-2 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30 font-black text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Encerrar</button>
+                                </div>
+                            ` : `
+                                <p class="text-gray-400 italic text-xs mb-3">Disponível para uso</p>
+                                <div class="h-10 border border-dashed border-white/20 rounded-xl flex items-center justify-center text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/5">QUADRA LIVRE</div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderActivity() {
+            const container = document.getElementById('home-recent-activity');
+            // Mostrar os últimos 5 itens do histórico
+            const recent = state.history.slice().reverse().slice(0, 5);
+            container.innerHTML = recent.map(r => `
+                <div class="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <div class="w-10 h-10 ${r.type ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'} rounded-xl flex items-center justify-center">
+                        <i class="fas ${r.type ? 'fa-history' : 'fa-check-circle'}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-bold text-white">${r.players[0]}${r.players.length > 1 ? ' + ' + (r.players.length - 1) : ''}</p>
+                        <p class="text-[10px] text-gray-500 uppercase font-black">${r.court} • ${r.startTime} - ${r.endTime}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[9px] font-black text-gray-600 uppercase tracking-tighter">${r.date}</p>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-center text-gray-600 font-bold py-10">Nenhum histórico disponível.</p>';
+        }
+
+        function releaseCourt(court) {
+            console.log("Releasing court:", court);
+            const booking = state.bookings.find(b => b.court === court);
+            
+            if(booking) {
+                // Se for um jogo normal, salva no histórico
+                if(!booking.type) {
+                    const now = new Date();
+                    const endTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    
+                    let playDuration = 0;
+                    if(booking.startTime) {
+                        try {
+                            const [h1, m1] = booking.startTime.split(':').map(Number);
+                            const [h2, m2] = endTime.split(':').map(Number);
+                            playDuration = (h2 * 60 + m2) - (h1 * 60 + m1);
+                        } catch(e) {}
+                    }
+
+                    let waitDuration = 0;
+                    if(booking.registrationTime && booking.startTime) {
+                        try {
+                            const [h1, m1] = booking.registrationTime.split(':').map(Number);
+                            const [h2, m2] = booking.startTime.split(':').map(Number);
+                            waitDuration = (h2 * 60 + m2) - (h1 * 60 + m1);
+                        } catch(e) {}
+                    }
+
+                    state.history.push({
+                        ...booking,
+                        date: today,
+                        weekday: weekday,
+                        endTime: endTime,
+                        playDuration: playDuration > 0 ? playDuration : 0,
+                        waitDuration: waitDuration > 0 ? waitDuration : 0
+                    });
+                }
+                
+                state.bookings = state.bookings.filter(b => b.court !== court);
+                
+                // --- CHAMADA AUTOMÁTICA DA FILA ---
+                if(state.waitlist.length > 0) {
+                    // Encontra o próximo elegível (priorizando duplas no horário nobre)
+                    const priorityIdx = state.waitlist.findIndex(item => {
+                        const isPriorityTime = item.registrationTime >= "09:30" && item.registrationTime <= "18:30";
+                        const isDupla = item.activity === "Dupla" || (item.activity === "Bate-bola" && item.players.length >= 4);
+                        return isPriorityTime && isDupla && !item.repeat;
+                    });
+
+                    const nextIdx = priorityIdx !== -1 ? priorityIdx : 0;
+                    const nextEntry = state.waitlist.splice(nextIdx, 1)[0];
+                    
+                    nextEntry.court = court;
+                    nextEntry.startTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    
+                    // Cálculo 1h Bate-bola
+                    if(nextEntry.activity === "Bate-bola") {
+                        const [h, m] = nextEntry.startTime.split(':').map(Number);
+                        const end = new Date();
+                        end.setHours(h + 1, m);
+                        nextEntry.endTime = end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    state.bookings.push(nextEntry);
+                    showToast(`${nextEntry.players[0]} foi chamado da fila para a ${court}!`, "success");
+                }
+
+                save();
+                render();
+                showToast(`Quadra ${court} liberada!`, "success");
+            }
+        }
+
+        function startMatch(court) {
+            const booking = state.bookings.find(b => b.court === court);
+            if(booking) {
+                booking.startTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                
+                // Cálculo 1h Bate-bola
+                if(booking.activity === "Bate-bola") {
+                    const [h, m] = booking.startTime.split(':').map(Number);
+                    const end = new Date();
+                    end.setHours(h + 1, m);
+                    booking.endTime = end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+                
+                save();
+                render();
+                showToast("Partida iniciada!", "success");
+            }
+        }
+
+        function clearAllData() {
+            if(confirm("Deseja apagar TODOS os dados do sistema (Agendamentos, Fila e Histórico)?")) {
+                state.bookings = [];
+                state.waitlist = [];
+                state.history = [];
+                save();
+                render();
+                showToast("Sistema reiniciado!", "info");
+            }
+        }
+
+        function showToast(msg, type='info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bg = type === 'error' ? 'bg-red-600' : (type === 'warning' ? 'bg-orange-500' : 'bg-indigo-600');
+            toast.className = `${bg} text-white px-8 py-4 rounded-2xl shadow-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 mb-3`;
+            toast.innerHTML = `<i class="fas fa-bell"></i> ${msg}`;
+            container.appendChild(toast);
+            gsap.from(toast, { x: 100, opacity: 0, duration: 0.5 });
+            setTimeout(() => {
+                gsap.to(toast, { x: 100, opacity: 0, duration: 0.5, onComplete: () => toast.remove() });
+            }, 4000);
+        }
+
+        // Init
+        setInterval(() => {
+            const clock = document.getElementById('public-clock');
+            if(clock) clock.innerText = new Date().toLocaleTimeString('pt-BR');
+            
+            // Atualizar data na visualização pública
+            const dateEl = document.getElementById('public-date');
+            const weekdayEl = document.getElementById('public-weekday');
+            if(dateEl) dateEl.innerText = new Date().toLocaleDateString('pt-BR');
+            if(weekdayEl) weekdayEl.innerText = new Date().toLocaleDateString('pt-BR', { weekday: 'long' });
+
+            // Verificar tema automático se estiver ativo
+            if(state.settings.theme === 'auto') applyTheme();
+        }, 1000);
+        
+        switchView('home');
+        if (state.settings.firebaseConfig) connectFirebase();
+
+        // --- Sincronização entre Abas ---
+        window.addEventListener('storage', (e) => {
+            // Se a chave alterada for uma das nossas chaves de estado
+            if (e.key && e.key.startsWith('rq_pro_')) {
+                console.log("Detectada mudança em outra aba:", e.key);
+                
+                // Recarregar todo o estado do localStorage
+                state.courts = JSON.parse(localStorage.getItem('rq_pro_courts')) || state.courts;
+                state.bookings = JSON.parse(localStorage.getItem('rq_pro_bookings')) || [];
+                state.waitlist = JSON.parse(localStorage.getItem('rq_pro_waitlist')) || [];
+                state.history = Array.isArray(JSON.parse(localStorage.getItem('rq_pro_history'))) ? JSON.parse(localStorage.getItem('rq_pro_history')) : [];
+                state.members = JSON.parse(localStorage.getItem('rq_pro_members')) || state.members;
+                state.settings = JSON.parse(localStorage.getItem('rq_pro_settings')) || state.settings;
+                
+                // Atualizar o tema visual caso tenha mudado
+                applyTheme();
+                
+                // Re-renderizar a interface com os novos dados
+                render();
+            }
+        });
+    </script>
+</body>
+</html>
