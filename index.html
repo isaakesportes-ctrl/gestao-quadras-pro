@@ -144,7 +144,7 @@
             height: 90vw;
             max-width: 1200px;
             max-height: 1200px;
-            background-image: url('./logo_spac.png'); /* Caminho relativo explícito */
+            background-image: url('logo_spac.png'); /* Caminho base */
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
@@ -1997,16 +1997,24 @@
         try {
             console.log("ReservaQuadras Pro Iniciado.");
             
-            // Verificação de carga da logo
-            const logoCheck = new Image();
-            logoCheck.onload = () => console.log("Logo SPAC carregada com sucesso.");
-            logoCheck.onerror = () => {
-                console.error("ERRO: logo_spac.png não encontrada.");
-                console.log("Caminho tentado: " + logoCheck.src);
-                // Fallback para outros locais se necessário
-            };
-            logoCheck.src = './logo_spac.png';
-            
+            // Tentativa inteligente de carregar a logo em diferentes caminhos
+            const logoBg = document.getElementById('public-logo-bg');
+            if (logoBg) {
+                const paths = ['logo_spac.png', './logo_spac.png', '/logo_spac.png', 'assets/logo_spac.png', 'public/logo_spac.png'];
+                let found = false;
+                
+                paths.forEach(path => {
+                    if (found) return;
+                    const img = new Image();
+                    img.onload = () => {
+                        if (found) return;
+                        found = true;
+                        logoBg.style.backgroundImage = `url('${path}')`;
+                        console.log("Logo encontrada em: " + path);
+                    };
+                    img.src = path;
+                });
+            }
         } catch (e) {
             console.error("Erro na inicialização:", e);
         }
