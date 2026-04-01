@@ -142,9 +142,9 @@
             transform: translate(-50%, -50%);
             width: 90vw;
             height: 90vw;
-            max-width: 1100px;
-            max-height: 1100px;
-            background-image: url('logo_spac.png');
+            max-width: 1200px;
+            max-height: 1200px;
+            background-image: url('logo.png'); /* Nome simplificado */
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
@@ -1996,6 +1996,18 @@
         /* Initialize System */
         try {
             console.log("ReservaQuadras Pro Iniciado.");
+            
+            // Verificação de carga da logo
+            const logoCheck = new Image();
+            logoCheck.onload = () => console.log("Logo carregada: logo.png");
+            logoCheck.onerror = () => {
+                console.error("ERRO: logo.png não encontrada. Verifique se o arquivo está na pasta raiz do site.");
+                // Tenta fallback para o nome original caso o renomear tenha falhado ou cache
+                const logoBg = document.getElementById('public-logo-bg');
+                if(logoBg) logoBg.style.backgroundImage = "url('logo_spac.png')";
+            };
+            logoCheck.src = 'logo.png';
+            
         } catch (e) {
             console.error("Erro na inicialização:", e);
         }
