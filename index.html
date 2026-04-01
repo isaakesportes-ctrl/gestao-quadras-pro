@@ -144,7 +144,7 @@
             height: 90vw;
             max-width: 1200px;
             max-height: 1200px;
-            background-image: url('s.png'); /* Nome curto para evitar problemas de carregamento */
+            background-image: url('./logo_spac.png'); /* Caminho relativo explícito */
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
@@ -1999,14 +1999,13 @@
             
             // Verificação de carga da logo
             const logoCheck = new Image();
-            logoCheck.onload = () => console.log("Logo carregada com sucesso: s.png");
+            logoCheck.onload = () => console.log("Logo SPAC carregada com sucesso.");
             logoCheck.onerror = () => {
-                console.error("ERRO: O arquivo s.png não foi encontrado na raiz do site.");
-                // Tenta outros nomes se falhar
-                const logoBg = document.getElementById('public-logo-bg');
-                if(logoBg) logoBg.style.backgroundImage = "url('s.png')";
+                console.error("ERRO: logo_spac.png não encontrada.");
+                console.log("Caminho tentado: " + logoCheck.src);
+                // Fallback para outros locais se necessário
             };
-            logoCheck.src = 's.png';
+            logoCheck.src = './logo_spac.png';
             
         } catch (e) {
             console.error("Erro na inicialização:", e);
