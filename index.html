@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReservaQuadras Pro | Gestão de Elite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <!-- Firebase SDK (Cloud Sync) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen">
+    <canvas id="tennis-canvas"></canvas>
+    <div id="glass-overlay"></div>
+    <div class="mesh-bg"></div>
+    <div id="toast-container"></div>
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-[100] backdrop-blur-md bg-black/20 border-b border-white/5 px-4 md:px-8 py-4 md:py-5">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center justify-between w-full md:w-auto">
+                <div class="flex items-center gap-4 group cursor-pointer" onclick="switchView('home')">
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center rotate-3 group-hover:rotate-12 transition-transform duration-500 shadow-xl shadow-indigo-500/20">
+                        <i class="fas fa-table-tennis-paddle-ball text-xl md:text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-extrabold tracking-tighter" id="brand-name">Reserva<span class="text-indigo-400">Quadras</span></h1>
+                        <p class="text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none">Management Pro</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 md:hidden">
+                    <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all">
+                        <i id="theme-icon-mobile" class="fas fa-moon text-indigo-400 text-sm"></i>
+                    </button>
+                    <span class="text-[8px] font-black text-emerald-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 md:gap-8 overflow-x-auto max-w-full pb-2 md:pb-0 scrollbar-hide w-full md:w-auto justify-center md:justify-start">
+                <button onclick="switchView('home')" id="nav-home" class="nav-link text-[11px] md:text-sm font-bold text-gray-400 hover:text-white transition-all whitespace-nowrap">INÍCIO</button>
+                <button onclick="switchView('public')" id="nav-public" class="nav-link text-[11px] md:text-sm font-bold text-gray-400 hover:text-white transition-all whitespace-nowrap">PÚBLICO</button>
+                <button onclick="switchView('admin')" id="nav-admin" class="nav-link text-[11px] md:text-sm font-bold text-gray-400 hover:text-white transition-all whitespace-nowrap">ADMIN</button>
+                <button onclick="switchView('settings')" id="nav-settings" class="nav-link text-[11px] md:text-sm font-bold text-gray-400 hover:text-white transition-all whitespace-nowrap">AJUSTES</button>
+            </div>
+
+            <div class="hidden md:flex items-center gap-4">
+                <div id="navbar-court-status" class="hidden xl:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
+                    <!-- Injected by JS -->
+                </div>
+
+                <button onclick="toggleTheme()" class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all" title="Alternar Tema">
+                    <i id="theme-icon" class="fas fa-moon text-indigo-400 text-sm md:text-base"></i>
+                </button>
+                
+                <div class="hidden sm:flex flex-col items-end">
+                    <span class="text-[8px] md:text-xs font-black text-emerald-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> ONLINE
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 md:p-8 lg:p-12">
+        <!-- Home View -->
+        <div id="home-view" class="view space-y-16 py-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                <div class="space-y-10">
+                    <div class="flex justify-between items-center">
+                        <div class="inline-flex items-center gap-3 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                            <span class="w-2 h-2 bg-indigo-400 rounded-full animate-ping"></span>
+                            <span class="text-xs font-black text-indigo-400 uppercase tracking-widest">Dashboard de Hoje</span>
+                        </div>
+                        <button onclick="exportDashboardData()" class="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 font-black text-[10px] uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-2">
+                            <i class="fas fa-file-export"></i> Exportar Dados
+                        </button>
+                    </div>
+                    
+                    <h2 class="text-6xl font-black leading-none tracking-tight text-white">
+                        Visão Geral do <br> <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Seu Clube</span>
+                    </h2>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Quadras Ocupadas</p>
+                            <p id="stat-occupied" class="text-4xl font-black text-white">0</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Na Espera</p>
+                            <p id="stat-wait" class="text-4xl font-black text-indigo-400">0</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Jogos Hoje</p>
+                            <p id="stat-total" class="text-4xl font-black text-emerald-400">0</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Média Jogo</p>
+                            <p id="stat-avg" class="text-4xl font-black text-purple-400">--</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Espera Média</p>
+                            <p id="stat-avg-wait" class="text-4xl font-black text-indigo-300">--</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Desistências</p>
+                            <p id="stat-withdrawals" class="text-4xl font-black text-red-400">0</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Sócio do Dia</p>
+                            <p id="stat-top-player" class="text-lg font-black text-white truncate">--</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-8 rounded-[2.5rem] space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-black text-white flex items-center gap-3">
+                                <i class="fas fa-chart-line text-indigo-400"></i>
+                                Análise de Ocupação
+                            </h3>
+                            <button onclick="exportWithdrawals()" class="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-white transition-all">
+                                Exportar Desistências
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Quadra Mais Utilizada</p>
+                                <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span id="stat-top-court" class="font-bold text-white">--</span>
+                                    <span id="stat-top-court-count" class="text-xs font-black text-indigo-400">0 jogos</span>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horário de Pico</p>
+                                <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span id="stat-peak-hour" class="font-bold text-white">--</span>
+                                    <span id="stat-peak-count" class="text-xs font-black text-purple-400">0 entradas</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Distribuição por Atividade</p>
+                            <div id="stat-activity-distribution" class="flex h-4 rounded-full overflow-hidden bg-white/5 border border-white/10">
+                                <!-- Injected by JS -->
+                            </div>
+                            <div id="stat-activity-legend" class="flex flex-wrap gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                <!-- Injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute inset-0 bg-indigo-500/20 blur-[120px] rounded-full"></div>
+                    <div class="glass-card p-10 rounded-[3rem] relative overflow-hidden h-full">
+                        <div class="flex justify-between items-center mb-8">
+                            <h3 class="text-xl font-black text-white">Histórico Recente</h3>
+                            <button onclick="switchView('admin')" class="text-xs font-black text-indigo-400 hover:text-white transition-all uppercase tracking-widest">Ver Tudo</button>
+                        </div>
+                        <div class="space-y-4" id="home-recent-activity">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="admin-view" class="view hidden space-y-12">
+            <div class="flex flex-col md:flex-row justify-between items-end gap-6">
+                <div>
+                    <h2 class="text-5xl font-black tracking-tighter">Gerenciamento <span class="text-indigo-400">Mestre</span></h2>
+                    <p class="text-gray-500 font-bold mt-2">Controle de ocupação, aulas e bloqueios técnicos.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openBookingModal('queue')" class="btn-primary px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">
+                        Inscrição Fila
+                    </button>
+                    <button onclick="openBookingModal('court')" class="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all">
+                        Inscrição Direta
+                    </button>
+                    <button onclick="openMemberModal()" class="px-6 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-black text-xs uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all">Cadastrar Sócio</button>
+                    <button onclick="clearAllData()" class="px-6 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 font-black text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Limpar Tudo</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="admin-grid">
+                <!-- Injected by JS -->
+            </div>
+
+            <!-- Fila de Espera Admin (Drag and Drop) -->
+            <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                    <h3 class="text-xl font-black text-white">Fila de Espera (Arraste para Reordenar ou para uma Quadra)</h3>
+                    <div class="px-4 py-1 bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+                        MANUAL
+                    </div>
+                </div>
+                <div id="admin-waitlist" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-h-[100px] p-4 bg-white/0 rounded-3xl border border-dashed border-white/20 backdrop-blur-[2px]">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+
+            <!-- Banco de Dados JSON (Re-adicionado) -->
+            <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                <h3 class="text-xl font-black border-b border-white/5 pb-4 flex justify-between items-center">
+                    Banco de Dados de Sócios (JSON)
+                    <button onclick="document.getElementById('db-json-container').classList.toggle('hidden')" class="text-xs text-indigo-400 font-bold uppercase tracking-widest">Ver/Ocultar</button>
+                </h3>
+                <div id="db-json-container" class="hidden space-y-6">
+                    <div class="space-y-2">
+                        <textarea id="set-members" oninput="updateSettingsSilent()" class="w-full input-glass p-6 rounded-2xl font-mono text-xs h-64 custom-scrollbar" placeholder='{"1001": ["João", "Maria"]}'></textarea>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="updateSettings()" class="btn-primary px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Atualizar Base</button>
+                        <button onclick="exportMembers()" class="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 font-black text-xs uppercase tracking-widest hover:bg-white/10">Exportar Base</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Public View -->
+        <div id="public-view" class="view hidden space-y-12">
+            <div class="flex flex-col items-center text-center space-y-4 pt-6">
+                <div id="public-clock" class="text-5xl font-black text-indigo-400 mb-2">00:00:00</div>
+                <div class="flex items-center gap-4 text-gray-400 font-bold uppercase tracking-widest text-lg">
+                    <span id="public-date">--/--/----</span>
+                    <span class="w-1.5 h-1.5 bg-white/20 rounded-full"></span>
+                    <span id="public-weekday">----------</span>
+                </div>
+                <h2 class="text-7xl font-black tracking-tight text-white">Status das <span class="text-indigo-400">Quadras</span></h2>
+                <p class="text-gray-300 text-2xl font-medium max-w-2xl mx-auto">Disponibilidade em Tempo Real</p>
+            </div>
+
+            <div id="public-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Injected by JS -->
+            </div>
+
+            <div class="glass-card p-10 rounded-[3rem] max-w-full mx-auto">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-4xl font-black tracking-tighter text-white">Fila de Espera</h3>
+                    <div class="px-5 py-2.5 bg-indigo-500/20 border border-indigo-500/40 rounded-xl text-indigo-300 text-sm font-black tracking-widest">
+                        ORDEM DE CHAMADA
+                    </div>
+                </div>
+                <div id="public-waitlist" class="space-y-4">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settings-view" class="view hidden space-y-12">
+            <h2 class="text-5xl font-black tracking-tighter">Personalização</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                    <h3 class="text-2xl font-black border-b border-white/10 pb-4 text-white">Status da Nuvem</h3>
+                    <div class="space-y-6">
+                        <div class="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+                            <p class="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2"><i class="fas fa-check-circle"></i> Sincronização Ativa</p>
+                            <p class="text-[10px] text-gray-400 leading-relaxed">O sistema está configurado para conectar automaticamente ao Firebase. Seus companheiros verão as mudanças em tempo real sem nenhuma ação manual.</p>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div>
+                                <p class="text-xs font-bold text-white">Status da Nuvem</p>
+                                <p id="cloud-status" class="text-[10px] text-gray-500 font-black uppercase tracking-widest">DESCONECTADO</p>
+                            </div>
+                            <button onclick="connectFirebase()" class="px-4 py-2 bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 transition-all">RECONECTAR</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                    <h3 class="text-2xl font-black border-b border-white/10 pb-4 text-white">Configurações do Clube</h3>
+                    <div class="space-y-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Nome do Clube</label>
+                            <input type="text" id="set-club-name" onchange="updateSettings()" class="w-full input-glass p-5 rounded-2xl font-bold text-base">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Quadras (Nomes separados por vírgula)</label>
+                            <input type="text" id="set-courts" onchange="updateSettings()" class="w-full input-glass p-5 rounded-2xl font-bold text-base">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Cor Principal</label>
+                            <input type="color" id="set-color" onchange="updateSettings()" class="w-full h-16 rounded-2xl bg-transparent border border-white/20 p-1 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                    <h3 class="text-2xl font-black border-b border-white/10 pb-4 text-white">Desempenho</h3>
+                    <div class="space-y-6">
+                        <div class="p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+                            <p class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2"><i class="fas fa-bolt"></i> Modo Performance</p>
+                            <p class="text-[10px] text-gray-400 leading-relaxed">Ative esta opção se o site estiver lento no seu computador. Isso reduzirá a qualidade dos gráficos 3D e simplificará as animações para economizar CPU e GPU.</p>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div>
+                                <p class="text-xs font-bold text-white">Modo Econômico</p>
+                                <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest">MELHORA O DESEMPENHO</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="set-performance" onchange="togglePerformanceMode()" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-10 rounded-[3rem] space-y-8">
+                    <h3 class="text-2xl font-black border-b border-white/10 pb-4 text-white">Sincronização & Backup</h3>
+                    <div class="space-y-6">
+                        <div class="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                            <p class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2"><i class="fas fa-info-circle"></i> Uso Simultâneo</p>
+                            <p class="text-sm text-gray-400 leading-relaxed">Este sistema armazena dados no navegador local. Para sincronizar em tempo real em diferentes computadores, utilize uma solução de banco de dados na nuvem ou mantenha o backup atualizado.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="exportFullSystemData()" class="w-full py-4 rounded-2xl bg-white/5 border border-white/10 font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                                <i class="fas fa-download"></i> Backup Total
+                            </button>
+                            <button onclick="document.getElementById('import-file').click()" class="w-full py-4 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-black text-[10px] uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center gap-2">
+                                <i class="fas fa-upload"></i> Restaurar
+                            </button>
+                            <input type="file" id="import-file" class="hidden" accept=".json" onchange="importFullSystemData(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Inscrição -->
+    <div id="booking-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeBookingModal()"></div>
+        <div class="modal-theme-fix w-full max-w-4xl rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <div>
+                    <h3 class="text-3xl font-black" id="booking-modal-title">Nova Reserva</h3>
+                    <p class="text-indigo-400 font-bold text-xs uppercase tracking-widest" id="booking-modal-subtitle">Preencha os dados oficiais</p>
+                </div>
+                <button onclick="closeBookingModal()" class="text-gray-500 hover:text-white text-2xl transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form id="booking-form" class="p-10 grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div class="md:col-span-2 space-y-4">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Participantes (Título + Nome)</label>
+                    <div id="player-rows" class="grid grid-cols-1 gap-4">
+                        <!-- 4 rows injected -->
+                    </div>
+                </div>
+
+                <div class="space-y-2" id="court-field-box">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Quadra *</label>
+                    <select id="field-court" class="w-full input-glass p-4 rounded-2xl font-bold"></select>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Atividade *</label>
+                    <select id="field-activity" required class="w-full input-glass p-4 rounded-2xl font-bold" onchange="toggleDuration()">
+                        <option value="Dupla">🎾 Jogo Dupla</option>
+                        <option value="Simples">🎾 Jogo Simples</option>
+                        <option value="Ranking infantil">🏆 Ranking Infantil</option>
+                        <option value="Ranking adulto">🏆 Ranking Adulto</option>
+                        <option value="Bate-bola">🔄 Bate-bola</option>
+                        <option value="Individual">🏃 Individual</option>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horário de Inscrição *</label>
+                    <input type="time" id="field-start" required class="w-full input-glass p-4 rounded-2xl font-bold">
+                </div>
+
+                <div id="dur-box" class="space-y-2 hidden">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Duração Fixa</label>
+                    <input type="text" value="60 minutos" readonly class="w-full input-glass p-4 rounded-2xl font-bold opacity-50">
+                </div>
+
+                <div class="md:col-span-2 space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Observação (Opcional)</label>
+                    <input type="text" id="field-observation" placeholder="Ex: Aula de teste, Convidado, etc." class="w-full input-glass p-4 rounded-2xl font-bold">
+                </div>
+
+                <div class="md:col-span-2 flex gap-4 pt-6">
+                    <button type="button" onclick="closeBookingModal()" class="flex-1 px-8 py-5 rounded-3xl font-black uppercase tracking-widest text-xs border border-white/10 hover:bg-white/5 transition-all">Cancelar</button>
+                    <button type="submit" id="booking-submit-btn" class="flex-1 btn-primary px-8 py-5 rounded-3xl font-black uppercase tracking-widest text-xs shadow-2xl">Salvar Reserva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Admin Opções -->
+    <div id="admin-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeAdminModal()"></div>
+        <div class="modal-theme-fix w-full max-w-md rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black" id="admin-court-title">Quadra</h3>
+                <button onclick="closeAdminModal()" class="text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-8 space-y-4">
+                <div class="space-y-2 mb-4">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Observação do Status</label>
+                    <input type="text" id="admin-observation" placeholder="Ex: Chuva forte, Troca de rede, Prof. João" class="w-full input-glass p-4 rounded-2xl font-bold text-sm">
+                </div>
+                <div class="grid grid-cols-1 gap-3">
+                    <button onclick="setCourtStatus('lesson')" id="admin-lesson-btn" class="w-full py-5 rounded-2xl status-lesson font-black uppercase tracking-widest text-xs shadow-lg">Entrar em Aula</button>
+                    <button onclick="setCourtStatus('rain')" id="admin-rain-btn" class="w-full py-5 rounded-2xl status-rain font-black uppercase tracking-widest text-xs shadow-lg">Interrompido por Chuva</button>
+                    <button onclick="setCourtStatus('tournament')" id="admin-tournament-btn" class="w-full py-5 rounded-2xl status-tournament font-black uppercase tracking-widest text-xs shadow-lg">Campeonato</button>
+                    <button onclick="setCourtStatus('blocked')" id="admin-blocked-btn" class="w-full py-5 rounded-2xl status-blocked font-black uppercase tracking-widest text-xs shadow-lg">Bloquear Manutenção</button>
+                    <button onclick="setCourtStatus('free')" id="admin-free-btn" class="w-full py-5 rounded-2xl bg-white/5 hover:bg-white/10 transition-all font-black uppercase tracking-widest text-xs border border-white/10">Liberar Quadra</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Jogo -->
+    <div id="edit-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeEditModal()"></div>
+        <div class="modal-theme-fix w-full max-w-md rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black">Editar Agendamento</h3>
+                <button onclick="closeEditModal()" class="text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-10 space-y-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Atividade</label>
+                    <select id="edit-activity" class="w-full input-glass p-4 rounded-2xl font-bold">
+                        <option value="Dupla">🎾 Jogo Dupla</option>
+                        <option value="Simples">🎾 Jogo Simples</option>
+                        <option value="Ranking infantil">🏆 Ranking Infantil</option>
+                        <option value="Ranking adulto">🏆 Ranking Adulto</option>
+                        <option value="Bate-bola">🔄 Bate-bola</option>
+                        <option value="Individual">🏃 Individual</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Observação</label>
+                    <input type="text" id="edit-observation" class="w-full input-glass p-4 rounded-2xl font-bold">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Inscrição</label>
+                        <input type="time" id="edit-registration" class="w-full input-glass p-4 rounded-2xl font-bold">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Início</label>
+                        <input type="time" id="edit-start" class="w-full input-glass p-4 rounded-2xl font-bold">
+                    </div>
+                </div>
+                <button onclick="saveEdit()" id="edit-save-btn" class="w-full btn-primary py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cadastro Sócio -->
+    <div id="member-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeMemberModal()"></div>
+        <div class="modal-theme-fix w-full max-w-md rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black">Cadastrar Sócio</h3>
+                <button onclick="closeMemberModal()" class="text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="member-form" class="p-10 space-y-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Número do Título *</label>
+                    <input type="text" id="mem-title" required placeholder="Ex: 1001" class="w-full input-glass p-4 rounded-2xl font-bold">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nomes (Separados por vírgula) *</label>
+                    <textarea id="mem-names" required placeholder="Ex: João Silva, Maria Silva" class="w-full input-glass p-4 rounded-2xl font-bold h-32"></textarea>
+                </div>
+                <button type="submit" id="member-submit-btn" class="w-full btn-primary py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg">Salvar Cadastro</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Mover para Quadra -->
+    <div id="move-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeMoveModal()"></div>
+        <div class="modal-theme-fix w-full max-w-md rounded-[3rem] shadow-2xl relative z-10 overflow-hidden border border-white/10">
+            <div class="p-10 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black">Mover para Quadra</h3>
+                <button onclick="closeMoveModal()" class="text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-8 space-y-4">
+                <p class="text-sm text-gray-400 mb-4">Selecione o destino para este grupo:</p>
+                <div id="move-court-options" class="grid grid-cols-1 gap-3 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
+                    <!-- Options injected by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
